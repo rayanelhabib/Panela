@@ -1,0 +1,19 @@
+app:
+  name: "Panella Panel"
+  env: "development" # development, staging, production
+  port: 8080
+
+database:
+  host: "127.0.0.1"
+  port: 5433
+  user: "postgres"
+  password: "secretpassword"
+  dbname: "panella"
+  sslmode: "disable"
+
+jwt:
+  secret: "your-super-secure-jwt-secret-key-change-this"
+  expire_hours: 24
+
+docker:
+  host: "unix:///var/run/docker.sock"

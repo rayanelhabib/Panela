@@ -1,0 +1,45 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+build/
+
+# Go workspaces and build files
+*.test
+*.out
+
+# Node/Frontend
+node_modules/
+dist/
+.next/
+npm-debug.log
+yarn-error.log
+
+# Environment variables and configs
+.env
+.env.local
+.env.*.local
+backend/configs/config.yaml
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs and Uploads
+*.log
+backend/uploads/
+backend/logs/
+
+# Database files
+*.sqlite
+*.db
+
+# Docker
+docker-compose.override.yml
