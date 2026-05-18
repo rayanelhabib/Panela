@@ -43,3 +43,8 @@ backend/logs/
 
 # Docker
 docker-compose.override.yml
+
+# Documentation guides to ignore
+GuideArch.md
+ArchitBaHadi.md
+
