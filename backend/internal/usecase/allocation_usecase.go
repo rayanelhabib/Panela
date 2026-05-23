@@ -37,3 +37,7 @@ func (u *allocationUsecase) AssignPortToServer(ctx context.Context, serverID str
 func (u *allocationUsecase) GetServerAllocations(ctx context.Context, serverID string) ([]*domain.Allocation, error) {
 	return u.allocRepo.GetByServerID(ctx, serverID)
 }
+
+func (u *allocationUsecase) ReleaseServerAllocations(ctx context.Context, serverID string) error {
+	return u.allocRepo.ReleaseAllByServerID(ctx, serverID)
+}

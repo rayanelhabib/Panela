@@ -83,3 +83,36 @@ func (u *userUsecase) Login(ctx context.Context, email, password string) (string
 func (u *userUsecase) GetProfile(ctx context.Context, id string) (*domain.User, error) {
 	return u.userRepo.GetByID(ctx, id)
 }
+
+func (u *userUsecase) UpdateProfile(ctx context.Context, id, username, email string) (*domain.User, error) {
+	user, err := u.userRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	user.Username = username
+	user.Email = email
+
+	err = u.userRepo.Update(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (u *userUsecase) UpdateAvatar(ctx context.Context, id, avatarURL string) (*domain.User, error) {
+	user, err := u.userRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	user.Avatar = &avatarURL
+
+	err = u.userRepo.Update(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}

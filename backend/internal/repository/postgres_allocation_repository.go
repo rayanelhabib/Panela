@@ -53,3 +53,10 @@ func (r *postgresAllocationRepo) GetByServerID(ctx context.Context, serverID str
 func (r *postgresAllocationRepo) Create(ctx context.Context, allocation *domain.Allocation) error {
 	return r.db.WithContext(ctx).Create(allocation).Error
 }
+
+func (r *postgresAllocationRepo) ReleaseAllByServerID(ctx context.Context, serverID string) error {
+	return r.db.WithContext(ctx).
+		Model(&domain.Allocation{}).
+		Where("server_id = ?", serverID).
+		Update("server_id", nil).Error
+}

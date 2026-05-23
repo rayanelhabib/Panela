@@ -16,9 +16,11 @@ type AllocationRepository interface {
 	Assign(ctx context.Context, allocationID string, serverID string) error
 	GetByServerID(ctx context.Context, serverID string) ([]*Allocation, error)
 	Create(ctx context.Context, allocation *Allocation) error
+	ReleaseAllByServerID(ctx context.Context, serverID string) error
 }
 
 type AllocationUsecase interface {
 	AssignPortToServer(ctx context.Context, serverID string, nodeID string) (*Allocation, error)
 	GetServerAllocations(ctx context.Context, serverID string) ([]*Allocation, error)
+	ReleaseServerAllocations(ctx context.Context, serverID string) error
 }

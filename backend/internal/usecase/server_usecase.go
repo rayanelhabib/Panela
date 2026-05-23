@@ -127,3 +127,21 @@ func (u *serverUsecase) StopServer(ctx context.Context, id, requesterID string) 
 	server.Status = "stopped"
 	return u.serverRepo.Update(ctx, server)
 }
+
+func (u *serverUsecase) DeleteServer(ctx context.Context, id, requesterID string) error {
+	server, err := u.GetServer(ctx, id, requesterID)
+	if err != nil {
+		return err
+	}
+
+	// 1. Shut down node daemon context if running
+	if server.Status != "stopped" && server.Status != "installing" {
+		_ = u.daemonClient.StopServer(ctx, server.NodeID, server.ID)
+	}
+
+	// 2. Release allocated physical ports
+	_ = u.allocUsecase.ReleaseServerAllocations(ctx, server.ID)
+
+	// 3. Remove GORM server records permanently
+	return u.serverRepo.Delete(ctx, server.ID)
+}

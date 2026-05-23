@@ -134,3 +134,26 @@ func (h *ServerHandler) Stop(c *gin.Context) {
 
 	response.OK(c, nil, "Server stopped successfully")
 }
+
+// Delete deprovisions and completely terminates a game server or VPS
+func (h *ServerHandler) Delete(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		response.BadRequest(c, "Server ID parameter is required")
+		return
+	}
+
+	userID, ok := c.Get("userID")
+	if !ok {
+		response.Unauthorized(c, "Invalid token context")
+		return
+	}
+
+	err := h.serverUsecase.DeleteServer(c.Request.Context(), id, userID.(string))
+	if err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+
+	response.OK(c, nil, "Server successfully deprovisioned")
+}

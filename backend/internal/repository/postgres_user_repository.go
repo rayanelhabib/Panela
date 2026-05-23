@@ -46,8 +46,11 @@ func (r *postgresUserRepo) GetByID(ctx context.Context, id string) (*domain.User
 func (r *postgresUserRepo) Create(ctx context.Context, user *domain.User) error {
 	err := r.db.WithContext(ctx).Create(user).Error
 	if err != nil {
-		// A simple check for unique violation in GORM
-		return err // In production, wrap postgres unique constraint errors explicitly
+		return err
 	}
 	return nil
+}
+
+func (r *postgresUserRepo) Update(ctx context.Context, user *domain.User) error {
+	return r.db.WithContext(ctx).Save(user).Error
 }

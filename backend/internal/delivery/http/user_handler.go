@@ -86,6 +86,35 @@ func (h *UserHandler) Profile(c *gin.Context) {
 	response.OK(c, user, "Profile fetched successfully")
 }
 
+// UpdateProfileRequest defines body validation structure
+type UpdateProfileRequest struct {
+	Username string `json:"username" binding:"required"`
+	Email    string `json:"email" binding:"required,email"`
+}
+
+// UpdateProfile updates the public profile details
+func (h *UserHandler) UpdateProfile(c *gin.Context) {
+	userID, ok := c.Get("userID")
+	if !ok {
+		response.Unauthorized(c, "Invalid token context")
+		return
+	}
+
+	var req UpdateProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+
+	user, err := h.userUsecase.UpdateProfile(c.Request.Context(), userID.(string), req.Username, req.Email)
+	if err != nil {
+		response.InternalServerError(c, err.Error())
+		return
+	}
+
+	response.OK(c, user, "Profile updated successfully")
+}
+
 // UploadAvatar securely handles avatar file uploads using magic byte verification
 func (h *UserHandler) UploadAvatar(c *gin.Context) {
 	userID, ok := c.Get("userID")
@@ -117,9 +146,14 @@ func (h *UserHandler) UploadAvatar(c *gin.Context) {
 		return
 	}
 
-	// In a real app, update user.Avatar in DB via userUsecase
-	// For now, we mock the successful response
 	avatarURL := fmt.Sprintf("/uploads/avatars/%s", newFileName)
+
+	// Save avatar url to database
+	_, err = h.userUsecase.UpdateAvatar(c.Request.Context(), userID.(string), avatarURL)
+	if err != nil {
+		response.InternalServerError(c, "Failed to persist avatar in database")
+		return
+	}
 
 	response.OK(c, gin.H{"avatar_url": avatarURL}, "Avatar securely uploaded and verified")
 }

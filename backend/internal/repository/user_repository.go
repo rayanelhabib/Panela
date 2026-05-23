@@ -57,3 +57,14 @@ func (r *userRepo) Create(ctx context.Context, user *domain.User) error {
 	r.users[user.ID] = user
 	return nil
 }
+
+func (r *userRepo) Update(ctx context.Context, user *domain.User) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if _, ok := r.users[user.ID]; !ok {
+		return errors.New("user not found")
+	}
+	r.users[user.ID] = user
+	return nil
+}

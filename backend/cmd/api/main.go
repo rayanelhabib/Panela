@@ -43,7 +43,15 @@ func main() {
 
 	// Auto-migrate tables
 	logger.Info("Running auto-migrations...")
-	err = db.AutoMigrate(&domain.User{}, &domain.Server{}, &domain.Allocation{})
+	err = db.AutoMigrate(
+		&domain.User{}, 
+		&domain.Server{}, 
+		&domain.Allocation{},
+		&domain.ServerDatabase{},
+		&domain.ServerBackup{},
+		&domain.ServerSchedule{},
+		&domain.Notification{},
+	)
 	if err != nil {
 		logger.Fatal("Failed to run migrations", zap.Error(err))
 	}
@@ -51,6 +59,8 @@ func main() {
 	userRepo := repository.NewPostgresUserRepository(db)
 	serverRepo := repository.NewPostgresServerRepository(db)
 	allocRepo := repository.NewPostgresAllocationRepository(db)
+	extRepo := repository.NewPostgresExtensionRepository(db)
+	notifRepo := repository.NewPostgresNotificationRepository(db)
 
 	// Seed some mock allocations for node-1 if empty
 	var count int64
@@ -73,7 +83,8 @@ func main() {
 	// Seed an initial admin user for development if not already present
 	// Email: admin@panella.com, Password: adminpassword
 	ctx := context.Background()
-	if _, err := userRepo.GetByEmail(ctx, "admin@panella.com"); err != nil {
+	adminUser, err := userRepo.GetByEmail(ctx, "admin@panella.com")
+	if err != nil {
 		hashedAdminPassword, _ := bcrypt.GenerateFromPassword([]byte("adminpassword"), bcrypt.DefaultCost)
 		_ = userRepo.Create(ctx, &domain.User{
 			ID:       "11111111-1111-1111-1111-111111111111",
@@ -82,8 +93,26 @@ func main() {
 			Username: "admin",
 			Role:     "admin",
 		})
+	} else if len(adminUser.Password) > 0 && adminUser.Password[0] != '$' {
+		// Existing admin has plaintext password, migrate to bcrypt
+		hashedAdminPassword, _ := bcrypt.GenerateFromPassword([]byte("adminpassword"), bcrypt.DefaultCost)
+		db.Model(&domain.User{}).Where("email = ?", "admin@panella.com").Update("password", string(hashedAdminPassword))
+		logger.Info("Admin password securely migrated to Bcrypt.")
 	}
 	logger.Info("Development admin user checked/seeded: admin@panella.com / adminpassword")
+
+	// Seed initial notification alert for admin onboarding
+	var notifCount int64
+	db.Model(&domain.Notification{}).Count(&notifCount)
+	if notifCount == 0 {
+		notifRepo.Create(ctx, &domain.Notification{
+			ID:        "00000000-0000-0000-0000-000000000100",
+			Message:   "Welcome to Panella Cloud Panel. Your clean orchestration dashboard is fully initialized and operational.",
+			Type:      "success",
+			CreatedAt: time.Now().Unix(),
+			Read:      false,
+		})
+	}
 
 	// 4. Initialize Asynq Client
 	redisConnOpt := asynq.RedisClientOpt{Addr: "localhost:6379"} // Should be from cfg in prod
@@ -97,12 +126,19 @@ func main() {
 	userUsecase := usecase.NewUserUsecase(userRepo, cfg)
 	allocUsecase := usecase.NewAllocationUsecase(allocRepo)
 	serverUsecase := usecase.NewServerUsecase(serverRepo, allocUsecase, asynqClient, daemonClient)
+	extUsecase := usecase.NewExtensionUsecase(extRepo)
+	notifUsecase := usecase.NewNotificationUsecase(notifRepo)
+	fileUsecase := usecase.NewFileManagerUsecase()
 
 	// 7. Initialize Handlers and Routers
 	userHandler := delivery.NewUserHandler(userUsecase)
 	serverHandler := delivery.NewServerHandler(serverUsecase)
 	consoleHandler := websocket.NewConsoleHandler(cfg, serverUsecase)
-	mainHandler := delivery.NewHandler(cfg, userHandler, serverHandler, consoleHandler)
+	extHandler := delivery.NewExtensionHandler(extUsecase)
+	notifHandler := delivery.NewNotificationHandler(notifUsecase)
+	fileHandler := delivery.NewFileManagerHandler(fileUsecase, notifUsecase)
+	
+	mainHandler := delivery.NewHandler(cfg, userHandler, serverHandler, consoleHandler, extHandler, notifHandler, fileHandler)
 
 	router := mainHandler.InitRouter()
 

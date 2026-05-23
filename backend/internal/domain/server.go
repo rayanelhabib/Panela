@@ -30,4 +30,5 @@ type ServerUsecase interface {
 	GetUserServers(ctx context.Context, userID string) ([]*Server, error)
 	StartServer(ctx context.Context, id, requesterID string) error
 	StopServer(ctx context.Context, id, requesterID string) error
+	DeleteServer(ctx context.Context, id, requesterID string) error
 }
