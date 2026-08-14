@@ -1,79 +1,122 @@
 <div align="center">
-  <h1>=> Panela Game Server Hosting Panel</h1>
-  <p>An enterprise-grade, highly scalable backend architecture for game server hosting and management, built with Go (Golang) using Clean Architecture principles.</p>
-
-  <img src="https://img.shields.io/badge/Go-00ADD8?style=for-the-badge&logo=go&logoColor=white" />
-  <img src="https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white" />
-  <img src="https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white" />
-  <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" />
+  <h1>🚀 Panella Backend</h1>
+  <p><strong>A Next-Generation, Enterprise-Grade Server Hosting Panel (Built with Passion & Clean Architecture)</strong></p>
 </div>
 
-<br />
+---
 
-## 📖 Overview
+## 👋 Hey there! Welcome to Panella
 
-**Panela** is a robust backend system designed to manage, deploy, and monitor game servers (like Minecraft, CS:GO, etc.) across distributed host nodes. Inspired by industry standards like Pterodactyl, Panela provides a seamless REST API for frontend integration and utilizes asynchronous background workers to handle heavy infrastructure tasks without blocking the main application thread.
+If you've ever looked at how complex server hosting panels (for game servers, VPS, or Docker nodes) are built, you know that keeping the code maintainable is an absolute nightmare. That's exactly why I built **Panella**. 
 
-The project is structured using pure **Clean Architecture**, ensuring that business logic is completely decoupled from the database, web frameworks, and external APIs.
+Instead of going with a standard, messy MVC framework where everything is tangled together, I decided from day one to build this entirely in **Go** using strict **Clean (Hexagonal) Architecture**. The result? An incredibly fast, rock-solid backend that handles massive traffic, background jobs, and real-time streaming without breaking a sweat.
 
-## ✨ Key Technical Features
+This README isn't just a list of commands—it's a deep dive into how and why Panella works the way it does.
 
-- **Asynchronous Task Queue (Redis + Asynq)**: Heavy operations like "Server Installation" are offloaded to background workers via Redis queues, ensuring the API remains lightning-fast and fault-tolerant.
-- **Real-Time Console (WebSockets)**: Utilizes `gorilla/websocket` to stream real-time server telemetry and terminal logs bidirectionally between the user and the Daemon.
-- **Dynamic Port Allocation**: Intelligent port locking system assigning unique IP/Port combinations across different Node hosts securely.
-- **Daemon Orchestration**: Built-in HTTP client adapter to communicate with isolated Docker-based Daemons on physical nodes (START, STOP, RESTART commands).
-- **ORM & Migrations**: Fully integrated **GORM** with PostgreSQL, including automatic schema migrations and connection pooling.
+---
 
-## 🛠️ Tech Stack
+## 🧠 The Philosophy: Clean Architecture
 
-| Component | Technology |
-|---|---|
-| **Core Language** | Go (Golang) |
-| **HTTP Framework** | Gin Web Framework |
-| **Database** | PostgreSQL |
-| **ORM** | GORM |
-| **Message Broker / Queue** | Redis + Asynq |
-| **Real-Time Comm.** | Gorilla WebSockets |
+Before writing a single line of code, the architecture was set in stone. The golden rule here is simple: **Dependencies always point inwards.**
 
-## 📂 Architecture (Clean Architecture)
+1. **Domain (The Core)**: This is the heart of Panella. It contains our structs (like `User` and `Server`) and interface contracts. It knows absolutely nothing about databases or HTTP.
+2. **Usecases (The Brains)**: This is where the business logic lives. When you say "Create a Server," the Usecase orchestrates the checks, the database calls, and the background tasks.
+3. **Repository (Data Access)** & **Delivery (HTTP API)**: These are the outer layers. They just implement the contracts defined in the Domain. 
 
-```text
-panela/
-├── cmd/
-│   ├── api/          # Entry point for the REST API & WebSockets
-│   └── worker/       # Entry point for the Background Task Consumer
-├── internal/
-│   ├── domain/       # Core Business Entities (Server, User, Allocation)
-│   ├── usecase/      # Application Logic (ServerUsecase, AllocationUsecase)
-│   ├── repository/   # Data Access Layer (PostgreSQL Implementations)
-│   ├── delivery/     # Controllers (HTTP Handlers & WebSocket upgraders)
-│   └── infrastructure/ # External Services (Redis Queue, Daemon HTTP Client)
-└── pkg/              # Shared utilities (Logger, DB Connections)
+Because of this, if we ever want to swap out our database or our HTTP framework, we only change the outer layers. The core logic remains untouched!
+
+---
+
+## ✨ How the Magic Happens (Key Features & Engineering)
+
+I've pushed this backend from a simple proof-of-concept to a production-ready beast. Here are the major systems driving Panella:
+
+### 🐘 PostgreSQL & GORM
+Initially, the project used an in-memory map to store data, but we've completely migrated to **PostgreSQL**.
+- I'm using **GORM** to handle the heavy lifting.
+- **Auto-Migration:** You don't have to write manual SQL scripts. When the API starts, it reads the Go structs and automatically creates or updates the necessary tables in PostgreSQL.
+- Everything is heavily typed with UUIDs as primary keys.
+
+### 🚦 Smart Port Allocation
+A game server can't exist without a unique port (like `25565`). 
+- When a new server is requested, the `AllocationUsecase` kicks in.
+- It scans the database for available, unassigned ports on the target Node.
+- It instantly assigns and locks the port so no two servers ever end up fighting for the same IP/Port combo.
+
+### ⚡ Redis & Background Workers (Asynq)
+When a user clicks "Install Server," downloading a huge Docker image can take 5 to 10 minutes. We can't freeze the API for that long!
+- I integrated **Asynq** (built on top of Redis) to handle queues.
+- The API instantly returns a success message to the user, but behind the scenes, it serializes the task into JSON and throws it into a Redis queue.
+- A completely separate **Worker** process listens to Redis, catches the task, and simulates the heavy installation process without blocking the main web server.
+
+### 🔌 Real-Time WebSockets
+What's a server panel without a live console? 
+- I used `gorilla/websocket` to upgrade standard HTTP requests into persistent, two-way WebSocket connections.
+- The backend streams live server logs, RAM, and CPU usage directly to the frontend. (Right now, it's a simulated ticker, but it's architected to pipe data straight from the Docker Daemon).
+
+### 🛑 Graceful Shutdowns
+If you ever need to restart the backend to apply an update, Panella won't violently cut off a user in the middle of a request. It listens to OS signals (`SIGINT`), stops accepting new requests, finishes whatever it's currently doing (giving it up to 5 seconds), and then shuts down cleanly.
+
+---
+
+## 🛠️ The Tech Stack
+
+- **Language:** Go (1.21+) - Because we need raw speed and concurrency.
+- **HTTP Framework:** Gin - For ultra-fast routing.
+- **Database:** PostgreSQL (with GORM).
+- **Queues:** Redis (with Asynq).
+- **Logging:** Uber Zap - For clean, structured, enterprise-grade logs.
+- **Config:** Viper - For reading environments without hardcoding credentials.
+
+---
+
+## 🚀 Getting Started
+
+Want to spin this up on your own machine? It's pretty straightforward.
+
+### What you need:
+- **Go 1.21+** installed.
+- **PostgreSQL** and **Redis** running (using Docker for these is the easiest way).
+
+### Step-by-Step:
+
+1. **Clone the repo:**
+   ```bash
+   git clone https://github.com/rayanelhabib/Panela.git
+   cd Panela
+   ```
+
+2. **Set up your config:**
+   Open up `configs/config.yaml` and make sure your PostgreSQL and Redis credentials match your local setup.
+
+3. **Start the API:**
+   ```bash
+   go run cmd/api/main.go
+   ```
+   *(Watch the terminal—you'll see GORM automatically migrating your database tables and seeding the initial ports!)*
+
+4. **Start the Background Worker:**
+   Open a second terminal window and start the worker that handles the Redis queue:
+   ```bash
+   go run cmd/worker/main.go
+   ```
+
+---
+
+## 🔍 Bonus: Codebase Search Tool
+
+Because the Clean Architecture splits things up into many files, I wrote a quick Python script to help you find your way around.
+
+If you want to find exactly where a function (like `CreateServer`) is used, just run:
+```bash
+python3 search_keyword.py
 ```
-=> Getting Started
-Prerequisites
-Go 1.20+
-PostgreSQL
-Redis Server
-Installation
-Clone the repository:
+It will prompt you for a keyword and instantly show you every file and line number where it appears.
 
-bash
-git clone https://github.com/rayanelhabib/Panela.git
-cd Panela
-Configure Environment: Update your config.yaml with your PostgreSQL and Redis credentials.
+---
 
-Start the API Server:
+## 🤝 Want to contribute?
+I'd love your help! Just remember the golden rule: respect the architecture. Keep the business logic in `usecase/`, keep the database queries in `repository/`, and keep the routing in `delivery/`.
 
-bash
-go run cmd/api/main.go
-Note: GORM will automatically migrate the database schema upon startup.
-
-Start the Background Worker: In a separate terminal, start the Asynq worker to process server installations:
-
-bash
-go run cmd/worker/main.go
--> Project Goals
-This project was developed to demonstrate my capability to design and implement highly concurrent, scalable backend systems suitable for cloud infrastructure and SaaS products. It specifically showcases my readiness for an Ausbildung as a Fachinformatiker für Anwendungsentwicklung in Germany, highlighting my understanding of enterprise software patterns.
-
-Developed with Go & Clean Architecture by Rayan.
+## 📝 License
+MIT License. Feel free to use this code to build something awesome.
