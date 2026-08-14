@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>🚀 Panela Game Server Hosting Panel</h1>
+  <h1>=> Panela Game Server Hosting Panel</h1>
   <p>An enterprise-grade, highly scalable backend architecture for game server hosting and management, built with Go (Golang) using Clean Architecture principles.</p>
 
   <img src="https://img.shields.io/badge/Go-00ADD8?style=for-the-badge&logo=go&logoColor=white" />
@@ -50,7 +50,7 @@ panela/
 │   └── infrastructure/ # External Services (Redis Queue, Daemon HTTP Client)
 └── pkg/              # Shared utilities (Logger, DB Connections)
 ```
-🚀 Getting Started
+=> Getting Started
 Prerequisites
 Go 1.20+
 PostgreSQL
@@ -73,7 +73,7 @@ Start the Background Worker: In a separate terminal, start the Asynq worker to p
 
 bash
 go run cmd/worker/main.go
-🎯 Project Goals
+-> Project Goals
 This project was developed to demonstrate my capability to design and implement highly concurrent, scalable backend systems suitable for cloud infrastructure and SaaS products. It specifically showcases my readiness for an Ausbildung as a Fachinformatiker für Anwendungsentwicklung in Germany, highlighting my understanding of enterprise software patterns.
 
 Developed with Go & Clean Architecture by Rayan.
